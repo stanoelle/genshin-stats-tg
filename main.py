@@ -16,7 +16,7 @@ def search(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text="Player not found. Please check the spelling and try again.")
 
 def main():
-    updater = Updater('YOUR_TELEGRAM_BOT_TOKEN', use_context=True)
+    updater = Updater('6128210574:AAGFmQPO6GiUO1WQr4UZvJv48rfqVuQWF6A', use_context=True)
 
     updater.dispatcher.add_handler(CommandHandler('start', start))
     updater.dispatcher.add_handler(CommandHandler('search', search))
