@@ -9,23 +9,23 @@ def start(update):
     update.message.reply_text('Welcome to the Genshin Impact character bot! Type /search followed by the character name to retrieve their info.')
 def search(update, context):
 
-    char_name = ' '.join(context.args)
+    character_name = ' '.join(context.args)
 
-    url = f'https://api.genshin.dev/characters/{char_name}'
+    url = f'https://api.genshin.dev/characters/{character_name}'
 
     response = requests.get(url)
 
     if response.status_code == 200:
 
-        char_data = response.json()
+        character_data = response.json()
 
-        info = f"Info for {char_data['name']}:\n\nElement: {char_data['element']} \nWeapon: {char_data['weapon']}\nDescription: {char_data['description']}"
+        message = f"{character_data['name']}\n\nElement: {character_data['element']} \nWeapon: {character_data['weapon']} \nRarity: {character_data['rarity']} \nDescription: {character_data['description']}"
 
-        context.bot.send_message(chat_id=update.effective_chat.id, text=info)
+        update.message.reply_text(message)
 
     else:
 
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Character not found. Please check the spelling and try again.")
+        update.message.reply_text("Character not found. Please check the spelling and try again.")
 
 def main():
 
