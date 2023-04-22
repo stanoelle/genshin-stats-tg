@@ -2,7 +2,7 @@ import requests
 
 import telegram
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters
 
 # Define the Telegram bot token and the API base URL
 
