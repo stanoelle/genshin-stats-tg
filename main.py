@@ -1,68 +1,74 @@
-import telegram
-
 import requests
 
 import json
 
-from telegram.ext import Updater, CommandHandler
+from telegram import Update
+
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+
+# Replace YOUR_BOT_TOKEN with your actual bot token obtained from BotFather
 
 TOKEN = '6128210574:AAGFmQPO6GiUO1WQr4UZvJv48rfqVuQWF6A'
 
-def start(update, context):
+# Replace YOUR_API_KEY with the actual API key obtained from Genshin Impact Gamepedia API
+
+API_KEY = None
+
+def start(update: Update, context: CallbackContext) -> None:
 
     """Send a message when the command /start is issued."""
 
-    update.message.reply_text('Hi! Welcome to Genshin Impact Character Usage bot. Enter the name of a character to see their usage statistics.')
+    update.message.reply_text('Hi! Send me the name of a Genshin Impact character to get information on their uses.')
 
-def get_character_info(character_name):
+def character_info(update: Update, context: CallbackContext) -> None:
 
-    """Retrieve character information from the Genshin Impact API."""
+    """Search for character information and send it to the user."""
 
-    url = f'https://api.genshin.dev/characters/{character_name}'
+    character_name = update.message.text
 
-    response = requests.get(url)
+    # Call the API to search for the character
 
-    character_info = json.loads(response.text)
+    url = f'https://genshin-impact.fandom.com/api.php?action=parse&page={character_name}&format=json'
 
-    return character_info
+    headers = {'User-Agent': 'Mozilla/5.0'}
 
-def get_character_usage(character_info):
+    response = requests.get(url, headers=headers)
 
-    """Retrieve character usage statistics from the character information."""
+    if response.status_code == 200:
 
-    stats = character_info['stats']
+        data = json.loads(response.text)
 
-    usage = stats['usage']
+        try:
 
-    return usage
+            # Extract the section containing the character uses
 
-def character_usage(update, context):
+            section = data['parse']['sections'][1]
 
-    """Retrieve and display the usage statistics of the requested character."""
+            section_title = section['line']
 
-    character_name = ' '.join(context.args).title()
+            section_text = section['text']
 
-    character_info = get_character_info(character_name)
+            # Send the information to the user
 
-    if 'message' in character_info:
+            update.message.reply_text(f'{section_title}\n\n{section_text}')
 
-        update.message.reply_text(f"Sorry, I couldn't find any information on {character_name}.")
+        except:
+
+            update.message.reply_text(f'Sorry, I could not find any information on {character_name}.')
 
     else:
 
-        usage = get_character_usage(character_info)
+        update.message.reply_text('Sorry, something went wrong. Please try again later.')
 
-        update.message.reply_text(f"Usage statistics for {character_name}:\n\n{usage}")
+def main() -> None:
 
-def main():
+    """Start the bot."""
 
     updater = Updater(TOKEN)
 
-    dp = updater.dispatcher
+    updater.dispatcher.add_handler(CommandHandler("start", start))
 
-    dp.add_handler(CommandHandler("start", start))
-
-    dp.add_handler(CommandHandler("usage", character_usage))
+    updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, character_info))
 
     updater.start_polling()
 
