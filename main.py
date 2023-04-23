@@ -70,14 +70,15 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
         update.message.reply_text('Sorry, something went wrong. Please try again later.')
 
-def error_handler(update: Update, context: CallbackContext) -> None:
+def error_handler(update, context):
 
     """Log the error and send a message to the user."""
 
-    logging.warning(f'Update "{update}" caused error "{context.error}"')
+    logger.error(f'Update {update} caused error {context.error}')
 
-    update.message.reply_text('Sorry, something went wrong. Please try again later.')
+    if update is not None:
 
+        update.message.reply_text('Sorry, something went wrong. Please try again later.')
 def main() -> None:
 
     """Start the bot."""
