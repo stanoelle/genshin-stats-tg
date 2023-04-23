@@ -1,6 +1,9 @@
 import requests
 
+import json
+
 from telegram import Update
+import logging
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
@@ -18,53 +21,45 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
     """Search for character information and send it to the user."""
 
-    character_name = update.message.text.lower()
+    character_name = update.message.text
 
     # Call the API to search for the character
 
-    url = f'https://api.genshin.dev/characters/{character_name}'
+    url = f'https://api.genshin.dev/characters/{character_name.lower()}'
 
-    response = requests.get(url)
+    headers = {'User-Agent': 'Mozilla/5.0'}
+
+    response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
 
-        data = response.json()
+        data = json.loads(response.text)
 
         try:
 
-            # Extract the character information
-
-            name = data['name']
-
-            vision = data['vision']
-
-            weapon_type = data['weapon']
-
-            rarity = data['rarity']
+            # Extract the character description and their use in the game
 
             description = data['description']
 
+            uses = data['uses']
+
             # Send the information to the user
 
-            message = f'{name}\n\nVision: {vision}\nWeapon Type: {weapon_type}\nRarity: {rarity}\n\n{description}'
-
-            update.message.reply_text(message)
+            update.message.reply_text(f'{description}\n\n{uses}')
 
         except:
 
-            update.message.reply_text(f'Sorry, I could not find any information on {character_name.title()}.')
+            update.message.reply_text(f'Sorry, I could not find any information on {character_name}.')
 
     else:
 
-        update.message.reply_text(f'Sorry, I could not find any information on {character_name.title()}.')
+        update.message.reply_text('Sorry, something went wrong. Please try again later.')
 
 def error_handler(update: Update, context: CallbackContext) -> None:
 
-    """Log the error and send a message to the user."""
+    """Log any errors that occur."""
 
-    logger.warning(f'Update {update} caused error {context.error}')
-
-    update.message.reply_text('Sorry, something went wrong. Please try again later.')
+    logger.error(f'Error occured: {context.error}')
 
 def main() -> None:
 
@@ -73,6 +68,8 @@ def main() -> None:
     updater = Updater(TOKEN)
 
     updater.dispatcher.add_handler(CommandHandler("start", start))
+
+    updater.dispatcher.add_handler(CommandHandler("character_info", character_info))
 
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, character_info))
 
