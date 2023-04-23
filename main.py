@@ -2,6 +2,8 @@ import requests
 
 import json
 
+import logging
+
 from telegram import Update
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
@@ -9,10 +11,17 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 # Replace YOUR_BOT_TOKEN with your actual bot token obtained from BotFather
 
 TOKEN = '6128210574:AAGFmQPO6GiUO1WQr4UZvJv48rfqVuQWF6A'
-
 # Replace YOUR_API_KEY with the actual API key obtained from Genshin Impact Gamepedia API
 
 API_KEY = None
+
+# Enable logging
+
+logging.basicConfig(
+
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 def start(update: Update, context: CallbackContext) -> None:
 
@@ -54,17 +63,21 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
         except:
 
+            logger.exception(f'Error retrieving information for {character_name}')
+
             update.message.reply_text(f'Sorry, I could not find any information on {character_name}.')
 
     else:
 
+        logger.warning(f'Status code {response.status_code} received when retrieving information for {character_name}')
+
         update.message.reply_text('Sorry, something went wrong. Please try again later.')
 
-def error(update: Update, context: CallbackContext) -> None:
+def error_handler(update: Update, context: CallbackContext) -> None:
 
-    """Log Errors caused by Updates."""
+    """Log any uncaught exceptions."""
 
-    logger.warning('Update "%s" caused error "%s"', update, context.error)
+    logger.exception(f'Unhandled exception: {context.error}')
 
 def main() -> None:
 
@@ -78,7 +91,7 @@ def main() -> None:
 
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, character_info))
 
-    updater.dispatcher.add_error_handler(error)
+    updater.dispatcher.add_error_handler(error_handler)
 
     updater.start_polling()
 
