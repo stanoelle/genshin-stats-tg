@@ -8,6 +8,14 @@ from telegram import Update
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
+# Set up logging
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
+
 # Replace YOUR_BOT_TOKEN with your actual bot token obtained from BotFather
 
 TOKEN = '6128210574:AAGFmQPO6GiUO1WQr4UZvJv48rfqVuQWF6A'
@@ -22,19 +30,11 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
     """Search for character information and send it to the user."""
 
-    try:
-
-        character_name = update.message.text
-
-    except AttributeError:
-
-        logger.error('Update object is None or does not have message attribute')
-
-        return
+    character_name = context.args[0]
 
     # Call the API to search for the character
 
-    url = f'https://api.genshin.dev/characters/{character_name.lower()}'
+    url = f'https://api.genshin.dev/characters/{character_name}'
 
     headers = {'User-Agent': 'Mozilla/5.0'}
 
@@ -42,27 +42,39 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
     if response.status_code == 200:
 
-        data = response.json()
+        data = json.loads(response.text)
 
-        if 'description' in data:
+        try:
 
-            # Extract the character information
+            # Extract the section containing the character uses
 
-            name = data['name']
+            character_title = data['name']
 
-            rarity = data['rarity']
+            character_description = data['description']
 
-            element = data['element']
+            character_rarity = data['rarity']
 
-            weapon_type = data['weapon']
+            character_weapon = data['weapon']
 
-            description = data['description']
+            character_element = data['element']
+
+            character_artifact = data['artifact']
 
             # Send the information to the user
 
-            update.message.reply_text(f'{name}\n\nRarity: {rarity}\nElement: {element}\nWeapon type: {weapon_type}\n\n{description}')
+            update.message.reply_text(f'{character_title}\n\n'
 
-        else:
+                                      f'Description: {character_description}\n\n'
+
+                                      f'Rarity: {character_rarity}\n'
+
+                                      f'Weapon: {character_weapon}\n'
+
+                                      f'Element: {character_element}\n'
+
+                                      f'Artifact: {character_artifact}')
+
+        except:
 
             update.message.reply_text(f'Sorry, I could not find any information on {character_name}.')
 
@@ -70,28 +82,27 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
         update.message.reply_text('Sorry, something went wrong. Please try again later.')
 
-def error_handler(update, context):
+def error(update: Update, context: CallbackContext) -> None:
 
     """Log the error and send a message to the user."""
 
-    logger.error(f'Update {update} caused error {context.error}')
+    logger.warning(f'Update {update} caused error {context.error}')
 
-    if update is not None:
+    update.message.reply_text('Sorry, something went wrong. Please try again later.')
 
-        update.message.reply_text('Sorry, something went wrong. Please try again later.')
 def main() -> None:
 
     """Start the bot."""
-
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     updater = Updater(TOKEN)
 
     updater.dispatcher.add_handler(CommandHandler("start", start))
 
+    updater.dispatcher.add_handler(CommandHandler("character_info", character_info))
+
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, character_info))
 
-    updater.dispatcher.add_error_handler(error_handler)
+    updater.dispatcher.add_error_handler(error)
 
     updater.start_polling()
 
