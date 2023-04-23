@@ -1,9 +1,5 @@
 import requests
 
-import json
-
-import logging
-
 from telegram import Update
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
@@ -11,12 +7,6 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 # Replace YOUR_BOT_TOKEN with your actual bot token obtained from BotFather
 
 TOKEN = '6128210574:AAGFmQPO6GiUO1WQr4UZvJv48rfqVuQWF6A'
-
-# Configure logging
-
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-
-logger = logging.getLogger(__name__)
 
 def start(update: Update, context: CallbackContext) -> None:
 
@@ -28,47 +18,53 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
     """Search for character information and send it to the user."""
 
-    character_name = update.message.text
+    character_name = update.message.text.lower()
 
     # Call the API to search for the character
 
-    url = f'https://genshin-impact.fandom.com/api.php?action=parse&page={character_name}&format=json'
+    url = f'https://api.genshin.dev/characters/{character_name}'
 
-    headers = {'User-Agent': 'Mozilla/5.0'}
-
-    response = requests.get(url, headers=headers)
+    response = requests.get(url)
 
     if response.status_code == 200:
 
-        data = json.loads(response.text)
+        data = response.json()
 
         try:
 
-            # Extract the section containing the character uses
+            # Extract the character information
 
-            section = data['parse']['sections'][1]
+            name = data['name']
 
-            section_title = section['line']
+            vision = data['vision']
 
-            section_text = section['text']
+            weapon_type = data['weapon']
+
+            rarity = data['rarity']
+
+            description = data['description']
 
             # Send the information to the user
 
-            update.message.reply_text(f'{section_title}\n\n{section_text}')
+            message = f'{name}\n\nVision: {vision}\nWeapon Type: {weapon_type}\nRarity: {rarity}\n\n{description}'
+
+            update.message.reply_text(message)
 
         except:
 
-            update.message.reply_text(f'Sorry, I could not find any information on {character_name}.')
+            update.message.reply_text(f'Sorry, I could not find any information on {character_name.title()}.')
 
     else:
 
-        update.message.reply_text('Sorry, something went wrong. Please try again later.')
+        update.message.reply_text(f'Sorry, I could not find any information on {character_name.title()}.')
 
-def error(update: Update, context: CallbackContext) -> None:
+def error_handler(update: Update, context: CallbackContext) -> None:
 
-    """Log errors caused by updates."""
+    """Log the error and send a message to the user."""
 
     logger.warning(f'Update {update} caused error {context.error}')
+
+    update.message.reply_text('Sorry, something went wrong. Please try again later.')
 
 def main() -> None:
 
@@ -78,11 +74,9 @@ def main() -> None:
 
     updater.dispatcher.add_handler(CommandHandler("start", start))
 
-    updater.dispatcher.add_handler(CommandHandler("character_info", character_info))
-
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, character_info))
 
-    updater.dispatcher.add_error_handler(error)
+    updater.dispatcher.add_error_handler(error_handler)
 
     updater.start_polling()
 
