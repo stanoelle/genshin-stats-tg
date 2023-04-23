@@ -2,8 +2,9 @@ import requests
 
 import json
 
-from telegram import Update
 import logging
+
+from telegram import Update
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
@@ -21,15 +22,13 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
     """Search for character information and send it to the user."""
 
-    character_name = update.message.text
+    character_name = update.message.text.lower()
 
     # Call the API to search for the character
 
-    url = f'https://api.genshin.dev/characters/{character_name.lower()}'
+    url = f'https://api.genshin.dev/characters/{character_name}'
 
-    headers = {'User-Agent': 'Mozilla/5.0'}
-
-    response = requests.get(url, headers=headers)
+    response = requests.get(url)
 
     if response.status_code == 200:
 
@@ -37,19 +36,17 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
         try:
 
-            # Extract the character description and their use in the game
+            # Extract the character uses
 
-            description = data['description']
-
-            uses = data['uses']
+            uses = data['data']['description']
 
             # Send the information to the user
 
-            update.message.reply_text(f'{description}\n\n{uses}')
+            update.message.reply_text(f'{character_name.capitalize()} uses:\n\n{uses}')
 
         except:
 
-            update.message.reply_text(f'Sorry, I could not find any information on {character_name}.')
+            update.message.reply_text(f'Sorry, I could not find any information on {character_name.capitalize()}.')
 
     else:
 
@@ -57,19 +54,21 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
 def error_handler(update: Update, context: CallbackContext) -> None:
 
-    """Log any errors that occur."""
+    """Log the error and send a message to the user."""
 
-    logger.error(f'Error occured: {context.error}')
+    logging.warning(f'Update "{update}" caused error "{context.error}"')
+
+    update.message.reply_text('Sorry, something went wrong. Please try again later.')
 
 def main() -> None:
 
     """Start the bot."""
 
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
     updater = Updater(TOKEN)
 
     updater.dispatcher.add_handler(CommandHandler("start", start))
-
-    updater.dispatcher.add_handler(CommandHandler("character_info", character_info))
 
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, character_info))
 
