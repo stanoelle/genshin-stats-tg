@@ -88,7 +88,6 @@ def error(update: Update, context: CallbackContext) -> None:
 
     logger.warning(f'Update {update} caused error {context.error}')
 
-    update.message.reply_text('Sorry, something went wrong. Please try again later.')
 
 def main() -> None:
 
