@@ -1,107 +1,75 @@
+import os
+
 import requests
-
-import json
-
 import logging
 
-from telegram import Update
+from telegram.ext import Updater, CommandHandler
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+def get_character_info(character_name):
 
-# Set up logging
+    character_name = character_name.title().replace(" ", "_")
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    url = f"https://api.genshin.dev/characters/{character_name}"
 
-                    level=logging.INFO)
-
-logger = logging.getLogger(__name__)
-
-# Replace YOUR_BOT_TOKEN with your actual bot token obtained from BotFather
-
-TOKEN = '6128210574:AAGFmQPO6GiUO1WQr4UZvJv48rfqVuQWF6A'
-
-def start(update: Update, context: CallbackContext) -> None:
-
-    """Send a message when the command /start is issued."""
-
-    update.message.reply_text('Hi! Send me the name of a Genshin Impact character to get information on their uses.')
-
-def character_info(update: Update, context: CallbackContext) -> None:
-
-    """Search for character information and send it to the user."""
-
-    character_name = context.args[0]
-
-    # Call the API to search for the character
-
-    url = f'https://api.genshin.dev/characters/{character_name}'
-
-    headers = {'User-Agent': 'Mozilla/5.0'}
-
-    response = requests.get(url, headers=headers)
+    response = requests.get(url)
 
     if response.status_code == 200:
 
-        data = json.loads(response.text)
+        character_info = response.json()
 
-        try:
+        message = f"<b>{character_info['name']}</b>\n\n{character_info['description']}\n\nRarity: {character_info['rarity']}\nVision: {character_info['vision']}\nWeapon: {character_info['weapon']}"
 
-            # Extract the section containing the character uses
-
-            character_title = data['name']
-
-            character_description = data['description']
-
-            character_rarity = data['rarity']
-
-            character_weapon = data['weapon']
-
-            character_element = data['element']
-
-            character_artifact = data['artifact']
-
-            # Send the information to the user
-
-            update.message.reply_text(f'{character_title}\n\n'
-
-                                      f'Description: {character_description}\n\n'
-
-                                      f'Rarity: {character_rarity}\n'
-
-                                      f'Weapon: {character_weapon}\n'
-
-                                      f'Element: {character_element}\n'
-
-                                      f'Artifact: {character_artifact}')
-
-        except:
-
-            update.message.reply_text(f'Sorry, I could not find any information on {character_name}.')
+        return message
 
     else:
 
-        update.message.reply_text('Sorry, something went wrong. Please try again later.')
+        return None
 
-def error(update: Update, context: CallbackContext) -> None:
+def start(update, context):
 
-    """Log the error and send a message to the user."""
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Hi! I'm a Genshin Impact bot. Type /help to see a list of available commands.")
 
-    logger.warning(f'Update {update} caused error {context.error}')
+def help(update, context):
 
+    help_message = "Here are the available commands:\n\n/character_info [character name] - Get information about a Genshin Impact character."
 
-def main() -> None:
+    context.bot.send_message(chat_id=update.effective_chat.id, text=help_message)
 
-    """Start the bot."""
+def character_info(update, context):
 
-    updater = Updater(TOKEN)
+    try:
 
-    updater.dispatcher.add_handler(CommandHandler("start", start))
+        character_name = context.args[0]
 
-    updater.dispatcher.add_handler(CommandHandler("character_info", character_info))
+    except IndexError:
 
-    updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, character_info))
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the name of the character after the command. For example, /character_info Diluc.")
 
-    updater.dispatcher.add_error_handler(error)
+        return
+
+    character_info = get_character_info(character_name)
+
+    if character_info:
+
+        context.bot.send_message(chat_id=update.effective_chat.id, text=character_info, parse_mode='HTML')
+
+    else:
+
+        context.bot.send_message(chat_id=update.effective_chat.id, text=f"Sorry, I could not find any information on {character_name.title()}. Please make sure the character name is spelled correctly and try again.")
+
+        
+
+def main():
+
+    updater = Updater(token=os.environ['BOT_TOKEN'], use_context=True)
+
+    dispatcher = updater.dispatcher
+
+    dispatcher.add_handler(CommandHandler('start', start))
+
+    dispatcher.add_handler(CommandHandler('help', help))
+
+    dispatcher.add_handler(CommandHandler('character_info', character_info))
 
     updater.start_polling()
 
