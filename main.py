@@ -25,6 +25,42 @@ def get_character_info(character_name):
 
         return None
 
+def player_stats(update, context):
+
+    chat_id = update.message.chat_id
+
+    try:
+
+        username = context.args[0]
+
+        response = requests.get(f'https://api.genshin.dev/players/{username}/stats').json()
+
+        if response:
+
+            stats = response['stats']
+
+            message = f"Stats for {username}:\n"
+
+            for category, values in stats.items():
+
+                message += f"{category}:\n"
+
+                for stat, value in values.items():
+
+                    message += f" - {stat}: {value}\n"
+
+            context.bot.send_message(chat_id=chat_id, text=message)
+
+        else:
+
+            context.bot.send_message(chat_id=chat_id, text=f"Sorry, I could not find any information on {username}.")
+
+    except:
+
+        context.bot.send_message(chat_id=chat_id, text="Please enter a valid username.")
+
+ 
+
 def start(update, context):
 
     context.bot.send_message(chat_id=update.effective_chat.id, text="Hi! I'm a Genshin Impact bot. Type /help to see a list of available commands.")
@@ -70,6 +106,8 @@ def main():
     dispatcher.add_handler(CommandHandler('help', help))
 
     dispatcher.add_handler(CommandHandler('character_info', character_info))
+    
+    dp.add_handler(CommandHandler('player_stats', player_stats))
 
     updater.start_polling()
 
