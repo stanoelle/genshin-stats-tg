@@ -60,6 +60,12 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
         update.message.reply_text('Sorry, something went wrong. Please try again later.')
 
+def error(update: Update, context: CallbackContext) -> None:
+
+    """Log Errors caused by Updates."""
+
+    logger.warning('Update "%s" caused error "%s"', update, context.error)
+
 def main() -> None:
 
     """Start the bot."""
@@ -68,7 +74,11 @@ def main() -> None:
 
     updater.dispatcher.add_handler(CommandHandler("start", start))
 
+    updater.dispatcher.add_handler(CommandHandler("character_info", character_info))
+
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, character_info))
+
+    updater.dispatcher.add_error_handler(error)
 
     updater.start_polling()
 
