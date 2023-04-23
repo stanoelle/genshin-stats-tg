@@ -8,7 +8,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 
 # Replace YOUR_BOT_TOKEN with your actual bot token obtained from BotFather
 
-TOKEN = '5915413280:AAGQbYmJm-TI-N76ElacXWLg5OJqyJKsEmw'
+TOKEN = '6128210574:AAGFmQPO6GiUO1WQr4UZvJv48rfqVuQWF6A'
 
 # Replace YOUR_API_KEY with the actual API key obtained from Genshin Impact Gamepedia API
 
