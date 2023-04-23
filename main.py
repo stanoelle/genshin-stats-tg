@@ -107,7 +107,7 @@ def main():
 
     dispatcher.add_handler(CommandHandler('character_info', character_info))
     
-    dp.add_handler(CommandHandler('player_stats', player_stats))
+    dispatcher.add_handler(CommandHandler('player_stats', player_stats))
 
     updater.start_polling()
 
