@@ -22,31 +22,49 @@ def character_info(update: Update, context: CallbackContext) -> None:
 
     """Search for character information and send it to the user."""
 
-    character_name = update.message.text.lower()
+    try:
+
+        character_name = update.message.text
+
+    except AttributeError:
+
+        logger.error('Update object is None or does not have message attribute')
+
+        return
 
     # Call the API to search for the character
 
-    url = f'https://api.genshin.dev/characters/{character_name}'
+    url = f'https://api.genshin.dev/characters/{character_name.lower()}'
 
-    response = requests.get(url)
+    headers = {'User-Agent': 'Mozilla/5.0'}
+
+    response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
 
-        data = json.loads(response.text)
+        data = response.json()
 
-        try:
+        if 'description' in data:
 
-            # Extract the character uses
+            # Extract the character information
 
-            uses = data['data']['description']
+            name = data['name']
+
+            rarity = data['rarity']
+
+            element = data['element']
+
+            weapon_type = data['weapon']
+
+            description = data['description']
 
             # Send the information to the user
 
-            update.message.reply_text(f'{character_name.capitalize()} uses:\n\n{uses}')
+            update.message.reply_text(f'{name}\n\nRarity: {rarity}\nElement: {element}\nWeapon type: {weapon_type}\n\n{description}')
 
-        except:
+        else:
 
-            update.message.reply_text(f'Sorry, I could not find any information on {character_name.capitalize()}.')
+            update.message.reply_text(f'Sorry, I could not find any information on {character_name}.')
 
     else:
 
