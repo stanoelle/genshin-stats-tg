@@ -1,110 +1,74 @@
-import os
+import telegram
 
 import requests
 
-import telegram
+import json
 
-from telegram.ext import CommandHandler, Updater
-
-# Replace with your own Telegram bot token
+from telegram.ext import Updater, CommandHandler
 
 TOKEN = '6128210574:AAGFmQPO6GiUO1WQr4UZvJv48rfqVuQWF6A'
 
-# Define a function to handle the /start command
-
 def start(update, context):
 
-    message = 'Welcome to the Genshin Impact player stats bot! To get started, enter your player name like this: /stats player_name'
+    """Send a message when the command /start is issued."""
 
-    context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+    update.message.reply_text('Hi! Welcome to Genshin Impact Character Usage bot. Enter the name of a character to see their usage statistics.')
 
-# Define a function to handle the /stats command
+def get_character_info(character_name):
 
-def stats(update, context):
+    """Retrieve character information from the Genshin Impact API."""
 
-    # Get the player name from the command arguments
+    url = f'https://api.genshin.dev/characters/{character_name}'
 
-    player_name = context.args[0]
+    response = requests.get(url)
 
-    # Retrieve player data from Genshin Impact Official Community API
+    character_info = json.loads(response.text)
 
-    url = f"https://api-takumi.mihoyo.com/game_record/app/card/wapi/getGameRecordCard?uid=&server=&nickname={player_name}"
+    return character_info
 
-    headers = {
+def get_character_usage(character_info):
 
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+    """Retrieve character usage statistics from the character information."""
 
-        "Referer": "https://webstatic-sea.mihoyo.com/",
+    stats = character_info['stats']
 
-        "x-rpc-app_version": "2.4.0",
+    usage = stats['usage']
 
-        "DS": "2b7f2c8f-3a79-4a5f-b7d1-92f68e53277a",
+    return usage
 
-    }
+def character_usage(update, context):
 
-    response = requests.get(url, headers=headers)
+    """Retrieve and display the usage statistics of the requested character."""
 
-    player_data = response.json()
+    character_name = ' '.join(context.args).title()
 
-    # Check if the player exists
+    character_info = get_character_info(character_name)
 
-    if player_data.get('retcode') != 0:
+    if 'message' in character_info:
 
-        message = f"Sorry, I couldn't find a player with the name {player_name}. Please try again with a valid player name."
+        update.message.reply_text(f"Sorry, I couldn't find any information on {character_name}.")
 
-        context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+    else:
 
-        return
+        usage = get_character_usage(character_info)
 
-    # Extract character details from player data
+        update.message.reply_text(f"Usage statistics for {character_name}:\n\n{usage}")
 
-    characters = player_data.get('data', {}).get('avatars', [])
+def main():
 
-    char_details = ''
+    updater = Updater(TOKEN)
 
-    for character in characters:
+    dp = updater.dispatcher
 
-        char_name = character.get('name')
+    dp.add_handler(CommandHandler("start", start))
 
-        char_level = character.get('level')
+    dp.add_handler(CommandHandler("usage", character_usage))
 
-        char_ascension = character.get('rarity')
+    updater.start_polling()
 
-        char_details += f"{char_name} (Lv. {char_level}, {char_ascension}⭐)\n"
+    updater.idle()
 
-    # Build the message to send back to the user
+if __name__ == '__main__':
 
-    message = f"Player Name: {player_name}\n\n"
-
-    message += f"Adventure Rank: {player_data['data']['level']}\n"
-
-    message += f"Server: {player_data['data']['region']}\n\n"
-
-    message += "Characters:\n"
-
-    message += char_details
-
-    # Send the message back to the user
-
-    context.bot.send_message(chat_id=update.effective_chat.id, text=message)
-
-# Initialize Telegram bot
-
-bot = telegram.Bot(token=TOKEN)
-
-# Initialize the Telegram bot updater and add command handlers
-
-updater = Updater(token=TOKEN, use_context=True)
-
-dispatcher = updater.dispatcher
-
-dispatcher.add_handler(CommandHandler('start', start))
-
-dispatcher.add_handler(CommandHandler('stats', stats))
-
-# Start polling for new messages
-
-updater.start_polling()
-
-updater.idle()
+    main()
 
