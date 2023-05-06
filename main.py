@@ -1,119 +1,68 @@
-import os
-
-import requests
-import logging
+import telegram
 
 from telegram.ext import Updater, CommandHandler
 
-def get_character_info(character_name):
+import genshinstats as gs
 
-    character_name = character_name.title().replace(" ", "_")
+# Replace with your own Telegram bot token
 
-    url = f"https://api.genshin.dev/characters/{character_name}"
+TOKEN = '6050800278:AAEDTN1TAGtavX8r1G3Zq0wF5Vqc0AwD0p0'
 
-    response = requests.get(url)
+# Initialize the Telegram bot
 
-    if response.status_code == 200:
+bot = telegram.Bot(token=TOKEN)
 
-        character_info = response.json()
+# Define the command handler for the /stats command
 
-        message = f"<b>{character_info['name']}</b>\n\n{character_info['description']}\n\nRarity: {character_info['rarity']}\nVision: {character_info['vision']}\nWeapon: {character_info['weapon']}"
+def stats(update, context):
 
-        return message
+    # Get the player's UID from the command argument
 
-    else:
+    uid = context.args[0]
 
-        return None
-
-def player_stats(update, context):
-
-    chat_id = update.message.chat_id
-
-    try:
-
-        username = context.args[0]
-
-        response = requests.get(f'https://api.genshin.dev/players/{username}/stats').json()
-
-        if response:
-
-            stats = response['stats']
-
-            message = f"Stats for {username}:\n"
-
-            for category, values in stats.items():
-
-                message += f"{category}:\n"
-
-                for stat, value in values.items():
-
-                    message += f" - {stat}: {value}\n"
-
-            context.bot.send_message(chat_id=chat_id, text=message)
-
-        else:
-
-            context.bot.send_message(chat_id=chat_id, text=f"Sorry, I could not find any information on {username}.")
-
-    except:
-
-        context.bot.send_message(chat_id=chat_id, text="Please enter a valid username.")
-
- 
-
-def start(update, context):
-
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Hi! I'm a Genshin Impact bot. Type /help to see a list of available commands.")
-
-def help(update, context):
-
-    help_message = "Here are the available commands:\n\n/character_info [character name] - Get information about a Genshin Impact character."
-
-    context.bot.send_message(chat_id=update.effective_chat.id, text=help_message)
-
-def character_info(update, context):
-
-    try:
-
-        character_name = context.args[0]
-
-    except IndexError:
-
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the name of the character after the command. For example, /character_info Diluc.")
-
-        return
-
-    character_info = get_character_info(character_name)
-
-    if character_info:
-
-        context.bot.send_message(chat_id=update.effective_chat.id, text=character_info, parse_mode='HTML')
-
-    else:
-
-        context.bot.send_message(chat_id=update.effective_chat.id, text=f"Sorry, I could not find any information on {character_name.title()}. Please make sure the character name is spelled correctly and try again.")
-
-        
-
-def main():
-
-    updater = Updater(token=os.environ['BOT_TOKEN'], use_context=True)
-
-    dispatcher = updater.dispatcher
-
-    dispatcher.add_handler(CommandHandler('start', start))
-
-    dispatcher.add_handler(CommandHandler('help', help))
-
-    dispatcher.add_handler(CommandHandler('character_info', character_info))
     
-    dispatcher.add_handler(CommandHandler('player_stats', player_stats))
 
-    updater.start_polling()
+    # Get the player's stats using the genshinstats library
 
-    updater.idle()
+    player = gs.PlayerStats(uid)
 
-if __name__ == '__main__':
+    
 
-    main()
+    # Format the stats as a string
+
+    stats_str = f"Stats for player {uid}:\n\n"
+
+    stats_str += f"Adventure Rank: {player.get('stats', 'level')}\n"
+
+    stats_str += f"Total Playtime: {player.get('stats', 'play_time')} hours\n"
+
+    stats_str += f"Anemoculi found: {player.get('world_exploration', 'anemoculus')}\n"
+
+    stats_str += f"Geoculi found: {player.get('world_exploration', 'geoculus')}\n"
+
+    
+
+    # Send the stats to the user
+
+    update.message.reply_text(stats_str)
+
+# Initialize the Telegram bot updater and dispatcher
+
+updater = Updater(token=TOKEN, use_context=True)
+
+dispatcher = updater.dispatcher
+
+# Add the /stats command handler to the dispatcher
+
+dispatcher.add_handler(CommandHandler('stats', stats))
+
+# Start the Telegram bot
+
+updater.start_polling()
+
+# Keep the bot running
+
+updater.idle()
+
+
 
