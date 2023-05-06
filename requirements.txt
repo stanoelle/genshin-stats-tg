@@ -1,4 +1,4 @@
-genshinstats==0.2.1
+genshinstats
 python-telegram-bot==13.4
 
 
