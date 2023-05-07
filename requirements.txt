@@ -1,4 +1,4 @@
 genshinstats
 python-telegram-bot==13.4
-
+requests
 
