@@ -1,189 +1,66 @@
-import telegram
-
-from telegram.ext import Updater, CommandHandler
-
-import genshinstats as gs
+import requests
 
 import json
 
-import requests
+from telegram.bot import Bot
 
-# Replace with your own Telegram bot token
+from telegram.ext import Updater, CommandHandler
 
-TOKEN = '6050800278:AAEDTN1TAGtavX8r1G3Zq0wF5Vqc0AwD0p0'
+# Get your bot token from https://api.telegram.org/botfather
 
-# Initialize the Telegram bot
+TOKEN = "YOUR_TOKEN"
 
-bot = telegram.Bot(token=TOKEN)
+# Create a bot
 
-# Define the command handler for the /start command
+bot = Bot(TOKEN)
 
-def start(update, context):
+# Define a command handler for the /stats command
 
-    update.message.reply_text('Welcome to the Genshin Impact bot! Use the /char command followed by a character name, or the /weapon command followed by a weapon name to get stats and images.')
+@bot.command("stats")
 
-# Define the command handler for the /char command
+def stats(update, context):
 
-def char(update, context):
+    # Get the search query from the user
 
-    # Check if the command has an argument
+    query = update.message.text.split()[1]
 
-    if not context.args:
+    # Make a request to the Paimon.moe API with the player's UID
 
-        update.message.reply_text('Please enter a character name after the /char command.')
+    response = requests.get("https://paimon.moe/api/users/" + query)
 
-        return
+    # Check if the request was successful
 
-    
+    if response.status_code == 200:
 
-    # Get the character name from the command argument
+        # Get the JSON data from the response
 
-    char_name = ' '.join(context.args)
+        data = json.loads(response.content)
 
-    
+        # Create a message with the stats of the player
 
-    # Get the character stats using the genshinstats library
+        message = "`Name: {}\nUID: {}\nAdventure Rank: {}\nWorld Level: {}\nCreated: {}\n`".format(
 
-    try:
+            data["name"], data["uid"], data["adventure_rank"], data["world_level"], data["created"]
 
-        char_data = gs.get_char_data(char_name)
+        )
 
-    except gs.errors.GenshinStatsException:
+        # Send the message to the user
 
-        update.message.reply_text(f"Could not find character {char_name}. Please check the spelling and try again.")
+        bot.send_message(update.message.chat_id, message)
 
-        return
+    else:
 
-    
+        # Send an error message to the user
 
-    # Get the character image URL
+        bot.send_message(update.message.chat_id, "Error: " + response.status_code)
 
-    char_image_url = char_data['image']
+# Start the bot
 
-    
+updater = Updater(TOKEN)
 
-    # Download the character image
-
-    response = requests.get(char_image_url)
-
-    with open('char_image.jpg', 'wb') as f:
-
-        f.write(response.content)
-
-    
-
-    # Format the character stats as a string
-
-    char_str = f"Stats for character {char_name}:\n\n"
-
-    char_str += f"Element: {char_data['element']}\n"
-
-    char_str += f"Weapon Type: {char_data['weapon']}\n"
-
-    char_str += f"Rarity: {char_data['rarity']}\n"
-
-    char_str += f"Base ATK: {char_data['base_atk']}\n"
-
-    char_str += f"Base HP: {char_data['base_hp']}\n"
-
-    
-
-    # Send the character stats and image to the user
-
-    update.message.reply_photo(photo=open('char_image.jpg', 'rb'))
-
-    update.message.reply_text(char_str)
-
-# Define the command handler for the /weapon command
-
-def weapon(update, context):
-
-    # Check if the command has an argument
-
-    if not context.args:
-
-        update.message.reply_text('Please enter a weapon name after the /weapon command.')
-
-        return
-
-    
-
-    # Get the weapon name from the command argument
-
-    weapon_name = ' '.join(context.args)
-
-    
-
-    # Get the weapon stats using the genshinstats library
-
-    try:
-
-        weapon_data = gs.get_weapon_data(weapon_name)
-
-    except gs.errors.GenshinStatsException:
-
-        update.message.reply_text(f"Could not find weapon {weapon_name}. Please check the spelling and try again.")
-
-        return
-
-    
-
-    # Get the weapon image URL
-
-    weapon_image_url = weapon_data['image']
-
-    
-
-    # Download the weapon image
-
-    response = requests.get(weapon_image_url)
-
-    with open('weapon_image.jpg', 'wb') as f:
-
-        f.write(response.content)
-
-    
-
-    # Format the weapon stats as a string
-
-    weapon_str = f"Stats for weapon {weapon_name}:\n\n"
-
-    weapon_str += f"Weapon Type: {weapon_data['type']}\n"
-
-    weapon_str += f"Rarity: {weapon_data['rarity']}\n"
-
-    weapon_str += f"Base ATK: {weapon_data['base_atk']}\n"
-
-    weapon_str += f"Secondary Stat: {weapon_data['secondary_stat']}\n"
-
-    weapon_str += f"Passive Ability: {weapon_data['passive_name']}\n"
-
-    
-
-    # Send the weapon stats and image to the user
-
-    update.message.reply_photo(photo=open('weapon_image.jpg', 'rb'))
-
-    update.message.reply_text(weapon_str)
-
-# Initialize the Telegram bot updater and dispatcher
-
-updater = Updater(token=TOKEN, use_context=True)
-
-dispatcher = updater.dispatcher
-
-# Add the /start, /char, and /weapon command handlers to the dispatcher
-
-dispatcher.add_handler(CommandHandler('start', start))
-
-dispatcher.add_handler(CommandHandler('char', char))
-
-dispatcher.add_handler(CommandHandler('weapon', weapon))
-
-# Start the Telegram bot
+updater.dispatcher.add_handler(CommandHandler("stats", stats))
 
 updater.start_polling()
 
-# Keep the bot running
-
 updater.idle()
+
