@@ -8,7 +8,7 @@ from telegram.ext import Updater, CommandHandler
 
 # Get your bot token from https://api.telegram.org/botfather
 
-TOKEN = "YOUR_TOKEN"
+TOKEN = "6050800278:AAEDTN1TAGtavX8r1G3Zq0wF5Vqc0AwD0p0"
 
 # Create a bot
 
