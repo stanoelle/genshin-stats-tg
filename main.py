@@ -2,7 +2,7 @@ import requests
 
 import json
 
-from telegram.bot import Bot
+import telegram
 
 from telegram.ext import Updater, CommandHandler
 
