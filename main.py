@@ -1,66 +1,54 @@
 import requests
-
-import json
-
-import telegram
-
 from telegram.ext import Updater, CommandHandler
 
-# Get your bot token from https://api.telegram.org/botfather
+# Telegram Bot Token
+TOKEN = '6050800278:AAEDTN1TAGtavX8r1G3Zq0wF5Vqc0AwD0p0'
 
-TOKEN = "6050800278:AAEDTN1TAGtavX8r1G3Zq0wF5Vqc0AwD0p0"
-
-# Create a bot
-
-bot = Bot(TOKEN)
-
-# Define a command handler for the /stats command
-
-@bot.command("stats")
-
+# Handler for the /stats command
 def stats(update, context):
+    # Get the username provided by the user
+    username = context.args[0] if len(context.args) > 0 else None
+    
+    if username:
+        # Construct the API URL
+        url = f'https://paimon.moe/api/users/{username}'
 
-    # Get the search query from the user
+        try:
+            # Send a GET request to the API
+            response = requests.get(url)
+            data = response.json()
+            
+            if response.status_code == 200:
+                # Extract the desired player stats
+                player_stats = {
+                    'Username': data['data']['username'],
+                    'Adventure Rank': data['data']['stats']['general']['stats']['active_day_number'],
+                    'Achievements': data['data']['stats']['general']['stats']['achievement_number'],
+                    'Anemoculi Found': data['data']['stats']['explorations']['anemoculi'],
+                    'Geoculi Found': data['data']['stats']['explorations']['geoculi']
+                }
 
-    query = update.message.text.split()[1]
-
-    # Make a request to the Paimon.moe API with the player's UID
-
-    response = requests.get("https://paimon.moe/api/users/" + query)
-
-    # Check if the request was successful
-
-    if response.status_code == 200:
-
-        # Get the JSON data from the response
-
-        data = json.loads(response.content)
-
-        # Create a message with the stats of the player
-
-        message = "`Name: {}\nUID: {}\nAdventure Rank: {}\nWorld Level: {}\nCreated: {}\n`".format(
-
-            data["name"], data["uid"], data["adventure_rank"], data["world_level"], data["created"]
-
-        )
-
-        # Send the message to the user
-
-        bot.send_message(update.message.chat_id, message)
-
+                # Generate the stats message
+                stats_message = '\n'.join(f'{key}: {value}' for key, value in player_stats.items())
+                context.bot.send_message(chat_id=update.effective_chat.id, text=stats_message)
+            else:
+                context.bot.send_message(chat_id=update.effective_chat.id, text='Player not found.')
+        except requests.exceptions.RequestException as e:
+            context.bot.send_message(chat_id=update.effective_chat.id, text='An error occurred while fetching player stats.')
     else:
+        context.bot.send_message(chat_id=update.effective_chat.id, text='Please provide a username.')
 
-        # Send an error message to the user
+# Create an instance of the Updater class and pass your bot token
+updater = Updater(token=TOKEN, use_context=True)
 
-        bot.send_message(update.message.chat_id, "Error: " + response.status_code)
+# Get the dispatcher to register handlers
+dispatcher = updater.dispatcher
+
+# Register the /stats command handler
+dispatcher.add_handler(CommandHandler('stats', stats))
 
 # Start the bot
-
-updater = Updater(TOKEN)
-
-updater.dispatcher.add_handler(CommandHandler("stats", stats))
-
 updater.start_polling()
 
+# Run the bot until it's stopped manually or an exception occurs
 updater.idle()
-
